@@ -71,7 +71,7 @@
   function onDraw(index) {
     let newColor = color;
     if (colorMode === "random") {
-      newColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+      newColor = "#" + ((Math.random() * 0xffffff) << 0).toString(16).padStart(6, "0");
     } else if (colorMode === "rainbow") {
       newColor = HslToHex(lastHue, 100, 50);
       lastHue += 360 / 64;
