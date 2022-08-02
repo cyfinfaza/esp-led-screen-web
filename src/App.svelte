@@ -16,6 +16,7 @@
       console.log("failed");
       connected = false;
     },
+    cleanSession: true,
   });
   let updateId;
   let lastRecieved = "";
@@ -48,13 +49,23 @@
   let color = "#00FF00";
   let mode = "draw";
   $: console.log(color);
+  function onDraw(index) {
+    switch (mode) {
+      case "draw":
+        grid[index] = color;
+        break;
+      case "erase":
+        grid[index] = "#000000";
+        break;
+    }
+  }
 </script>
 
 <main>
   <div class="tools">
     <button class:toolSelected={mode === "draw"} on:click={(_) => (mode = "draw")}>Draw</button>
     <button class:toolSelected={mode === "erase"} on:click={(_) => (mode = "erase")}>Erase</button>
-    <button on:click={(_) => (grid = clear)}>Clear</button>
+    <button on:click={(_) => (grid = new Array(64).fill("#000000"))}>Clear</button>
     <input type="color" name="" id="" bind:value={color} />
   </div>
   <div
@@ -62,6 +73,7 @@
     on:mousedown={(_) => (drawing = true)}
     on:mouseup={(_) => (drawing = false)}
     on:touchmove={(e) => {
+      e.preventDefault();
       grid[elements.indexOf(document.elementFromPoint(e.touches[0].pageX, e.touches[0].pageY))] = mode === "draw" ? color : "#000000";
     }}
   >
@@ -71,17 +83,11 @@
         class="box"
         style={`background: ${item}`}
         on:mouseenter={(_) => {
-          if (drawing) {
-            switch (mode) {
-              case "draw":
-                grid[i] = color;
-                break;
-              case "erase":
-                grid[i] = "#000000";
-                break;
-            }
-          }
+          if (drawing) onDraw(i);
         }}
+        on:touchstart={(_) => onDraw(i)}
+        on:click={(_) => onDraw(i)}
+        onmous
       />
     {/each}
   </div>
@@ -93,7 +99,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 16px;
     width: 100%;
     max-width: 600px;
   }
@@ -106,15 +112,16 @@
   }
 
   .tools > * {
-    background: #ccc;
     border: none;
     padding: 4px 6px;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 24px;
+    height: 100%;
   }
 
   .toolSelected {
-    background: lightgreen;
+    border: 2px solid lightgreen;
   }
 
   .grid {
@@ -125,7 +132,7 @@
     grid-template-columns: repeat(8, auto);
   }
   .box {
-    border: 1px solid black;
+    box-shadow: 3px 3px 0 0 #222;
     border-radius: 15%;
   }
   .colored {
