@@ -145,7 +145,10 @@
       />
     {/each}
   </div>
-  <p><code>{connected ? "connected" : "disconnected"}<br />{clientId}</code></p>
+  <div style="display: flex; gap: 12px; align-items: center;">
+    <div style={`height: 1em; aspect-ratio: 1; background: ${connected ? "#0F0" : "#F00"}; border-radius: 50%;`} />
+    <code style="font-size: 0.7rem;"> {connected ? "connected" : "disconnected"}<br />{clientId}</code>
+  </div>
 </main>
 
 <style>
