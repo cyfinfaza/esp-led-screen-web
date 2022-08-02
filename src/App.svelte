@@ -63,16 +63,11 @@
   let drawing = false;
   let color = "#00FF00";
   let mode = "draw";
+  let temporaryErase = false;
   $: console.log(color);
   function onDraw(index) {
-    switch (mode) {
-      case "draw":
-        grid[index] = color;
-        break;
-      case "erase":
-        grid[index] = "#000000";
-        break;
-    }
+    if (mode === "erase" || temporaryErase) grid[index] = "#000000";
+    else if (mode === "draw") grid[index] = color;
   }
   window.onmouseup = (e) => {
     drawing = false;
@@ -88,8 +83,17 @@
   </div>
   <div
     class="grid"
-    on:mousedown={(_) => (drawing = true)}
-    on:mouseup={(_) => (drawing = false)}
+    on:mousedown={(e) => {
+      if (e.button === 2) {
+        temporaryErase = true;
+      }
+      drawing = true;
+    }}
+    on:contextmenu={(e) => e.preventDefault()}
+    on:mouseup={(_) => {
+      temporaryErase = false;
+      drawing = false;
+    }}
     on:touchmove={(e) => {
       e.preventDefault();
       grid[elements.indexOf(document.elementFromPoint(e.touches[0].pageX, e.touches[0].pageY))] = mode === "draw" ? color : "#000000";
@@ -104,7 +108,13 @@
           if (drawing) onDraw(i);
         }}
         on:touchstart={(_) => onDraw(i)}
-        on:click={(_) => onDraw(i)}
+        on:mousedown={(e) => {
+          console.log(e);
+          if (e.button === 2 && mode !== "erase") {
+            temporaryErase = true;
+          }
+          onDraw(i);
+        }}
         onmous
       />
     {/each}
