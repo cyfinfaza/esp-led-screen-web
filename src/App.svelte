@@ -114,7 +114,7 @@
     }}
     on:touchmove={(e) => {
       e.preventDefault();
-      grid[elements.indexOf(document.elementFromPoint(e.touches[0].pageX, e.touches[0].pageY))] = mode === "draw" ? color : "#000000";
+      onDraw(elements.indexOf(document.elementFromPoint(e.touches[0].pageX, e.touches[0].pageY)));
     }}
     on:dragstart={(e) => e.preventDefault()}
   >
