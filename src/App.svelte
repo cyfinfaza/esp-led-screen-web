@@ -83,6 +83,7 @@
   window.onmouseup = (e) => {
     drawing = false;
   };
+  let lastTouchedIndex = -1;
 </script>
 
 <main>
@@ -114,8 +115,13 @@
     }}
     on:touchmove={(e) => {
       e.preventDefault();
-      onDraw(elements.indexOf(document.elementFromPoint(e.touches[0].pageX, e.touches[0].pageY)));
+      const newIndex = elements.indexOf(document.elementFromPoint(e.touches[0].pageX, e.touches[0].pageY));
+      if (newIndex != lastTouchedIndex) {
+        onDraw(newIndex);
+        lastTouchedIndex = newIndex;
+      }
     }}
+    on:touchend={(_) => (lastTouchedIndex = -1)}
     on:dragstart={(e) => e.preventDefault()}
   >
     {#each grid as item, i}
@@ -127,6 +133,7 @@
           if (drawing) onDraw(i);
         }}
         on:touchstart={(_) => onDraw(i)}
+        on:touchenter={(_) => onDraw(i)}
         on:mousedown={(e) => {
           console.log(e);
           if (e.button === 2 && mode !== "erase") {
