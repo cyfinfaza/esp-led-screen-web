@@ -6,38 +6,53 @@
   const channel = "hat-draw-1";
   window.client = client;
   let connected = false;
-  client.connect({
-    onSuccess: (_) => {
-      console.log("connected");
-      connected = true;
-      client.subscribe(channel);
-    },
-    onFailure: (_) => {
-      console.log("failed");
-      connected = false;
-    },
-    cleanSession: true,
-  });
-  let updateId;
+  function mqttConnect() {
+    client.connect({
+      onSuccess: (_) => {
+        console.log("connected");
+        connected = true;
+        client.subscribe(channel);
+      },
+      onFailure: (_) => {
+        console.log("failed");
+        connected = false;
+        setTimeout(() => {
+          mqttConnect();
+        }, 3000);
+      },
+      cleanSession: true,
+    });
+  }
+  client.onConnectionLost = (_) => {
+    console.log("disconnected");
+    connected = false;
+    setTimeout(() => {
+      mqttConnect();
+    }, 1000);
+  };
+  mqttConnect();
+  let updateIds = [];
   let lastRecieved = "";
   let firstUpdate = false;
   client.onMessageArrived = (message) => {
     if (message.destinationName === channel) {
       const data = JSON.parse(message.payloadString);
       console.log(data);
-      console.log("Comparing update Ids: " + updateId + " " + data.updateId);
+      // console.log("Comparing update Ids: " + updateId + " " + data.updateId);
       // debugger;
-      if (data.updateId != updateId && data.grid && JSON.stringify(data.grid) != JSON.stringify(grid)) {
+      if (updateIds.indexOf(data.updateId) === -1 && data.grid && JSON.stringify(data.grid) != JSON.stringify(grid)) {
         console.log("Updating grid");
         grid = [...data.grid];
         lastRecieved = JSON.stringify(grid);
       }
+      if (updateIds.indexOf(data.updateId) > -1) updateIds.splice(updateIds.indexOf(data.updateId), 1);
       firstUpdate = true;
     }
   };
   $: {
     if (connected && (firstUpdate || !(JSON.stringify(grid) == JSON.stringify(clear)))) {
-      updateId = Math.round(Math.random() * 1000000);
+      const updateId = Math.round(Math.random() * 1000000);
+      updateIds.push(updateId);
       console.log("Creating new updateId: " + updateId);
       if (lastRecieved != JSON.stringify(grid)) client.publish(channel, JSON.stringify({ updateId, grid }), 0, true);
     }
@@ -59,6 +74,9 @@
         break;
     }
   }
+  window.onmouseup = (e) => {
+    drawing = false;
+  };
 </script>
 
 <main>
