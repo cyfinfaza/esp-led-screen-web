@@ -1,5 +1,6 @@
 <script>
   import Paho from "paho-mqtt";
+  import HslToHex from "hsl-to-hex";
   import { v4 as uuidv4 } from "uuid";
   const clientId = "mobile-" + uuidv4();
   const client = new Paho.Client("wss://mqtt.4hcomputers.club/mqtt", clientId);
@@ -62,12 +63,22 @@
   let elements = new Array(64).fill(null);
   let drawing = false;
   let color = "#00FF00";
+  let colorMode = "solid";
   let mode = "draw";
   let temporaryErase = false;
+  let lastHue = 0;
   $: console.log(color);
   function onDraw(index) {
+    let newColor = color;
+    if (colorMode === "random") {
+      newColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+    } else if (colorMode === "rainbow") {
+      newColor = HslToHex(lastHue, 100, 50);
+      lastHue += 360 / 64;
+      if (lastHue > 360) lastHue = 0;
+    }
     if (mode === "erase" || temporaryErase) grid[index] = "#000000";
-    else if (mode === "draw") grid[index] = color;
+    else if (mode === "draw") grid[index] = newColor;
   }
   window.onmouseup = (e) => {
     drawing = false;
@@ -75,11 +86,18 @@
 </script>
 
 <main>
-  <div class="tools">
-    <button class:toolSelected={mode === "draw"} on:click={(_) => (mode = "draw")}>Draw</button>
-    <button class:toolSelected={mode === "erase"} on:click={(_) => (mode = "erase")}>Erase</button>
-    <button on:click={(_) => (grid = new Array(64).fill("#000000"))}>Clear</button>
-    <input type="color" name="" id="" bind:value={color} />
+  <div class="tools" style="flex-direction: column;">
+    <div class="tools">
+      <button class:toolSelected={mode === "draw"} on:click={(_) => (mode = "draw")}>Draw</button>
+      <button class:toolSelected={mode === "erase"} on:click={(_) => (mode = "erase")}>Erase</button>
+      <button on:click={(_) => (grid = new Array(64).fill("#000000"))}>Clear</button>
+    </div>
+    <div class="tools">
+      <input type="color" name="" id="" bind:value={color} />
+      <button class:toolSelected={colorMode === "solid"} on:click={(_) => (colorMode = "solid")}>Solid</button>
+      <button class:toolSelected={colorMode === "rainbow"} on:click={(_) => (colorMode = "rainbow")}>Rainbow</button>
+      <button class:toolSelected={colorMode === "random"} on:click={(_) => (colorMode = "random")}>Random</button>
+    </div>
   </div>
   <div
     class="grid"
@@ -98,6 +116,7 @@
       e.preventDefault();
       grid[elements.indexOf(document.elementFromPoint(e.touches[0].pageX, e.touches[0].pageY))] = mode === "draw" ? color : "#000000";
     }}
+    on:dragstart={(e) => e.preventDefault()}
   >
     {#each grid as item, i}
       <div
@@ -139,7 +158,7 @@
     gap: 8px;
   }
 
-  .tools > * {
+  .tools > *:not(.tools) {
     border: none;
     padding: 4px 6px;
     border-radius: 4px;
@@ -148,7 +167,7 @@
     height: 100%;
   }
 
-  .toolSelected {
+  .tools > *:not(.tools).toolSelected {
     border: 2px solid lightgreen;
   }
 
@@ -162,8 +181,5 @@
   .box {
     box-shadow: 3px 3px 0 0 #222;
     border-radius: 15%;
-  }
-  .colored {
-    background-color: black;
   }
 </style>
