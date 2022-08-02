@@ -2,7 +2,7 @@
   import Paho from "paho-mqtt";
   import { v4 as uuidv4 } from "uuid";
   const clientId = "mobile-" + uuidv4();
-  const client = new Paho.Client("wss://mq02.cy2.me/ws", clientId);
+  const client = new Paho.Client("wss://mqtt.4hcomputers.club/mqtt", clientId);
   const channel = "hat-draw-1";
   window.client = client;
   let connected = false;
