@@ -4,7 +4,8 @@
   import { v4 as uuidv4 } from "uuid";
   const clientId = "mobile-" + uuidv4();
   const client = new Paho.Client("wss://mqtt.4hcomputers.club/mqtt", clientId);
-  const channel = "hat-draw-1";
+  const channel = "sign-draw-1";
+  const channel2 = "sign-draw-2";
   window.client = client;
   let connected = false;
   function mqttConnect() {
@@ -41,44 +42,45 @@
       console.log(data);
       // console.log("Comparing update Ids: " + updateId + " " + data.updateId);
       // debugger;
-      if (updateIds.indexOf(data.updateId) === -1 && data.grid && JSON.stringify(data.grid) != JSON.stringify(grid)) {
+      if (
+        updateIds.indexOf(data.updateId) === -1 &&
+        data.grid &&
+        JSON.stringify(data.grid) != JSON.stringify(grid)
+      ) {
         console.log("Updating grid");
         grid = [...data.grid];
         lastRecieved = JSON.stringify(grid);
       }
-      if (updateIds.indexOf(data.updateId) > -1) updateIds.splice(updateIds.indexOf(data.updateId), 1);
+      if (updateIds.indexOf(data.updateId) > -1)
+        updateIds.splice(updateIds.indexOf(data.updateId), 1);
       firstUpdate = true;
     }
   };
   $: {
-    if (connected && (firstUpdate || !(JSON.stringify(grid) == JSON.stringify(clear)))) {
+    if (
+      connected &&
+      (firstUpdate || !(JSON.stringify(grid) == JSON.stringify(clear)))
+    ) {
       const updateId = Math.round(Math.random() * 1000000);
       updateIds.push(updateId);
       console.log("Creating new updateId: " + updateId);
-      if (lastRecieved != JSON.stringify(grid)) client.publish(channel, JSON.stringify({ updateId, grid }), 0, true);
+      if (lastRecieved != JSON.stringify(grid)) {
+        client.publish(channel, JSON.stringify({ updateId, grid }), 0, true);
+        client.publish(channel2, grid.join(""), 0, true);
+      }
     }
   }
-  let grid = new Array(64).fill("#000000");
-  const clear = new Array(64).fill("#000000");
-  let elements = new Array(64).fill(null);
+  let grid = new Array(504).fill(0);
+  const clear = new Array(504).fill(0);
+  let elements = new Array(504).fill(null);
   let drawing = false;
-  let color = "#00FF00";
-  let colorMode = "solid";
+  let color = 1;
   let mode = "draw";
   let temporaryErase = false;
-  let lastHue = 0;
   $: console.log(color);
   function onDraw(index) {
-    let newColor = color;
-    if (colorMode === "random") {
-      newColor = "#" + ((Math.random() * 0xffffff) << 0).toString(16).padStart(6, "0");
-    } else if (colorMode === "rainbow") {
-      newColor = HslToHex(lastHue, 100, 50);
-      lastHue += 360 / 64;
-      if (lastHue > 360) lastHue = 0;
-    }
-    if (mode === "erase" || temporaryErase) grid[index] = "#000000";
-    else if (mode === "draw") grid[index] = newColor;
+    if (mode === "erase" || temporaryErase) grid[index] = 0;
+    else if (mode === "draw") grid[index] = color;
   }
   window.onmouseup = (e) => {
     drawing = false;
@@ -89,15 +91,15 @@
 <main>
   <div class="tools" style="flex-direction: column;">
     <div class="tools">
-      <button class:toolSelected={mode === "draw"} on:click={(_) => (mode = "draw")}>Draw</button>
-      <button class:toolSelected={mode === "erase"} on:click={(_) => (mode = "erase")}>Erase</button>
-      <button on:click={(_) => (grid = new Array(64).fill("#000000"))}>Clear</button>
-    </div>
-    <div class="tools">
-      <input type="color" name="" id="" bind:value={color} />
-      <button class:toolSelected={colorMode === "solid"} on:click={(_) => (colorMode = "solid")}>Solid</button>
-      <button class:toolSelected={colorMode === "rainbow"} on:click={(_) => (colorMode = "rainbow")}>Rainbow</button>
-      <button class:toolSelected={colorMode === "random"} on:click={(_) => (colorMode = "random")}>Random</button>
+      <button
+        class:toolSelected={mode === "draw"}
+        on:click={(_) => (mode = "draw")}>Draw</button
+      >
+      <button
+        class:toolSelected={mode === "erase"}
+        on:click={(_) => (mode = "erase")}>Erase</button
+      >
+      <button on:click={(_) => (grid = new Array(504).fill(0))}>Clear</button>
     </div>
   </div>
   <div
@@ -115,7 +117,9 @@
     }}
     on:touchmove={(e) => {
       e.preventDefault();
-      const newIndex = elements.indexOf(document.elementFromPoint(e.touches[0].pageX, e.touches[0].pageY));
+      const newIndex = elements.indexOf(
+        document.elementFromPoint(e.touches[0].pageX, e.touches[0].pageY)
+      );
       if (newIndex != lastTouchedIndex) {
         onDraw(newIndex);
         lastTouchedIndex = newIndex;
@@ -128,7 +132,7 @@
       <div
         bind:this={elements[i]}
         class="box"
-        style={`background: ${item}`}
+        style={`background: ${item ? "#F00" : "#000"}`}
         on:mouseenter={(_) => {
           if (drawing) onDraw(i);
         }}
@@ -146,8 +150,14 @@
     {/each}
   </div>
   <div style="display: flex; gap: 12px; align-items: center;">
-    <div style={`height: 1em; aspect-ratio: 1; background: ${connected ? "#0F0" : "#F00"}; border-radius: 50%;`} />
-    <code style="font-size: 0.7rem;"> {connected ? "connected" : "disconnected"}<br />{clientId}</code>
+    <div
+      style={`height: 1em; aspect-ratio: 1; background: ${
+        connected ? "#0F0" : "#F00"
+      }; border-radius: 50%;`}
+    />
+    <code style="font-size: 0.7rem;">
+      {connected ? "connected" : "disconnected"}<br />{clientId}</code
+    >
   </div>
 </main>
 
@@ -158,7 +168,7 @@
     align-items: center;
     gap: 16px;
     width: 100%;
-    max-width: 600px;
+    max-width: 2000px;
   }
 
   .tools {
@@ -184,12 +194,12 @@
   .grid {
     width: 100%;
     display: grid;
-    gap: 4px;
-    aspect-ratio: 1;
-    grid-template-columns: repeat(8, auto);
+    gap: 2px;
+    aspect-ratio: 72/7;
+    grid-template-columns: repeat(72, auto);
   }
   .box {
     box-shadow: 3px 3px 0 0 #222;
-    border-radius: 15%;
+    border-radius: 50%;
   }
 </style>
